@@ -19,14 +19,18 @@ public class Parser {
                 for (int numCol = 0; numCol < numberOfColumns; numCol++) {
                     for (int numRow = 0; numRow < numberOfRows; numRow++) {
                         numberSet[numImage][numRow][numCol] = images.read();
-                        if (numberSet[numImage][numRow][numCol] <= 0xF) {
-                            System.out.print("0" + Integer.toHexString(numberSet[numImage][numRow][numCol]));
-                        }
-                        else {
-                            System.out.print(Integer.toHexString(numberSet[numImage][numRow][numCol]));
+                        if (Main.debug) {
+                            if (numberSet[numImage][numRow][numCol] <= 0xF) {
+                                System.out.print("0" + Integer.toHexString(numberSet[numImage][numRow][numCol]));
+                            }
+                            else {
+                                System.out.print(Integer.toHexString(numberSet[numImage][numRow][numCol]));
+                            }
                         }
                     }
-                    System.out.println();
+                    if (Main.debug) {
+                        System.out.println();
+                    }
                 }
             }
             return numberSet;
