@@ -20,7 +20,11 @@ public class Main {
     static boolean debug = false;
     
     public static void main(String[] args) {
-    
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log("Shutdown hook ran!");
+        }));
+
         // arg handling
         if (args.length > 0) {
             for (int i = 0; i < args.length; i++) {
