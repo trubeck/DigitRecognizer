@@ -34,7 +34,6 @@ public class Parser {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
         return null;
     }
 
@@ -53,4 +52,5 @@ public class Parser {
     
         return null;
     }
+    
 }
