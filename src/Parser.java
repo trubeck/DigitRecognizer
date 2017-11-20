@@ -11,8 +11,14 @@ public class Parser {
             int numberOfImages = (images.read() << 24) | (images.read() << 16) | (images.read() << 8) | (images.read());
             int numberOfRows  = (images.read() << 24) | (images.read() << 16) | (images.read() << 8) | (images.read());
             int numberOfColumns = (images.read() << 24) | (images.read() << 16) | (images.read() << 8) | (images.read());
-            System.out.println(magicNumberImages + ", "+ numberOfImages + ", "+ numberOfRows +", "+ numberOfColumns);
-
+    
+            if (Main.debug) {
+                System.out.println("magicNumberImages = " + magicNumberImages);
+                System.out.println("numberOfImages = " + numberOfImages);
+                System.out.println("numberOfRows = " + numberOfRows);
+                System.out.println("numberOfColumns = " + numberOfColumns);
+            }
+    
             int[][][] numberSet = new int[numberOfImages][numberOfRows][numberOfColumns];
     
             for (int numImage = 0; numImage < numberOfImages; numImage++) {
