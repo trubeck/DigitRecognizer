@@ -63,12 +63,9 @@ public class Main {
             }
         
         }
-
-        log("start");
         if (imagesFilepath != null) {
             int[][][] numberSet = new Parser().parseImage(new File(imagesFilepath));
         }
-        log("done");
     }
     
     static void log(String msg) {
