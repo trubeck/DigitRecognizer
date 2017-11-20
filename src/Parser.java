@@ -25,20 +25,14 @@ public class Parser {
                 for (int numCol = 0; numCol < numberOfColumns; numCol++) {
                     for (int numRow = 0; numRow < numberOfRows; numRow++) {
                         numberSet[numImage][numRow][numCol] = images.read();
-                        if (Main.debug) {
-                            if (numberSet[numImage][numRow][numCol] <= 0xF) {
-                                System.out.print("0" + Integer.toHexString(numberSet[numImage][numRow][numCol]));
-                            }
-                            else {
-                                System.out.print(Integer.toHexString(numberSet[numImage][numRow][numCol]));
-                            }
-                        }
-                    }
-                    if (Main.debug) {
-                        System.out.println();
                     }
                 }
             }
+
+            if (Main.debug) {
+                System.out.println("Image parsing done");
+            }
+
             return numberSet;
     
         } catch (IOException e) {
@@ -53,8 +47,16 @@ public class Parser {
     
             int magicNumberLabels = (labels.read() << 24) | (labels.read() << 16) | (labels.read() << 8) | (labels.read());
             int numberOfLabels = (labels.read() << 24) | (labels.read() << 16) | (labels.read() << 8) | (labels.read());
-            
-            
+
+            int[] labelSet = new int[numberOfLabels];
+
+            for (int numLabels = 0; numLabels < numberOfLabels; numLabels++) {
+                labelSet[numberOfLabels] = labels.read();
+            }
+
+            System.out.println("Label parsing done");
+
+            return labelSet;
             
         } catch (IOException e) {
             e.printStackTrace();
