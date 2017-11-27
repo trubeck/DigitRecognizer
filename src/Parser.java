@@ -31,7 +31,6 @@ public class Parser {
             
             log("Image parsing done");
             
-            
             return numberSet;
             
         } catch (IOException e) {
