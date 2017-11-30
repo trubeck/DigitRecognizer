@@ -3,13 +3,13 @@ import java.util.Random;
 class Network {
 
     // number of layers
-    final int NUM_LAYERS;
+    private final int NUM_LAYERS;
     
     // number of neurons in input layer
-    final int INPUT_SIZE;
+    private final int INPUT_SIZE;
     
     // number of neurons in output layer
-    final int OUTPUT_SIZE;
+    private final int OUTPUT_SIZE;
     
     // number of neurons in each layer
     final int[] LAYER_SIZE;
@@ -22,7 +22,12 @@ class Network {
 
     // output of a specific neuron [layer][neuron]
     private double[][] output;
-
+    
+    // TODO: NEW VARIABLES
+    private double[][] error;
+    private double[][] derivative;
+    
+    
     Network(int[] layer_size) {
         this.LAYER_SIZE = layer_size;
         this.NUM_LAYERS = layer_size.length;
@@ -32,10 +37,14 @@ class Network {
         output = new double[NUM_LAYERS][];
         weights = new double[NUM_LAYERS][][];
         bias = new double[NUM_LAYERS][];
+        error = new double[NUM_LAYERS][];
+        derivative = new double[NUM_LAYERS][];
         
         // 0 init
         for (int layer = 0; layer < NUM_LAYERS; layer++) {
             output[layer] = new double[LAYER_SIZE[layer]];
+            error[layer] = new double[LAYER_SIZE[layer]];
+            derivative[layer] = new double[LAYER_SIZE[layer]];
 
             // randomize biases
             bias[layer] = new double[LAYER_SIZE[layer]];
@@ -50,16 +59,45 @@ class Network {
                     for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
                         weights[layer][prevNeuron][neuron] = Math.random();
                     }
-
                 }
-
             }
         }
-
     }
 
+    void trainSubSet(double[][] input, double[][] target, int start, int end, double learningRate) {
+        //adapt input
+        double[][] subsetInput = new double[input.length][end - start];
+        double[][] subsetTarget = new double[target.length][end - start];
+        for (int i = start; i < end; i++) {
+            subsetInput[i] = input[start+i];
+            subsetTarget[i] = target[start+i];
+        }
+
+
+        trainAll(subsetInput, subsetTarget, learningRate);
+    }
+
+    void trainAll(double[][] input, double[][] target, double learningRate) {
+        for (int i = 0; i < input.length; i++) {
+            train(input[i], target[i], learningRate);
+        }
+    }
+    
+    void train(double[] input, double[] target, double learningRate) {
+        if (input.length == INPUT_SIZE) {
+            feedForward(input);
+            backpropagation(target);
+            updateweights(learningRate);
+        }
+    }
+    
     double[] feedForward(double[] input) {
-        if (input.length != INPUT_SIZE) return null;
+        if (input.length != INPUT_SIZE) {
+            log("feedForward(): input size does not equal first networklayer size!");
+            log("input: " + input.length);
+            log("layersize: " + input.length);
+            return null;
+        }
         this.output[0] = input;
         
         for (int layer = 1; layer < NUM_LAYERS; layer++) {
@@ -73,15 +111,78 @@ class Network {
                     sum += output[layer - 1][prevNeuron] * weights[layer][prevNeuron][neuron];
                 }
                 output[layer][neuron] = sigmoid(sum);
-
+                derivative[layer][neuron] = output[layer][neuron] * (1 - output[layer][neuron]);
             }
         }
 
         return output[NUM_LAYERS - 1];
     }
+    
+    private void backpropagation(double[] target) {
+        
+        if (target.length != OUTPUT_SIZE) {
+            log("Wrong label size!");
+            return;
+        }
+        
+        // output layer
+        for (int neuron = 0; neuron < OUTPUT_SIZE; neuron++) {
+            error[NUM_LAYERS - 1][neuron] = (output[NUM_LAYERS - 1][neuron] - target[neuron]) * derivative[NUM_LAYERS - 1][neuron];
+        }
+        
+        // every hidden layer back to front
+        for (int layer = NUM_LAYERS - 2; layer > 0; layer--) {
+    
+            for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
+                double sum = 0;
+                for (int nextNeuron = 0; nextNeuron < LAYER_SIZE[layer + 1]; nextNeuron++) {
+                    sum += weights[layer + 1][neuron][nextNeuron] * error[layer + 1][nextNeuron];
+                }
+                error[layer][neuron] = sum * derivative[layer][neuron];
+            }
+            
+        }
+    }
 
+    private void updateweights(double learningRate) {
+        for (int layer = 1; layer < NUM_LAYERS; layer++) {
+            for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
+                for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
+                    weights[layer][prevNeuron][neuron] += -learningRate * output[layer - 1][prevNeuron] * error[layer][neuron];
+                }
+                bias[layer][neuron] += -learningRate * error[layer][neuron];
+            }
+            
+        }
+    }
+    
     private double sigmoid(double x) {
         return 1d / (1 + Math.exp(-x));
     }
 
+    double[][] convertLables(int[] labels) {
+        double[][] target = new double[labels.length][10];
+        for (int i = 0; i < labels.length; i++) {
+            target[i][labels[i]] = 1;
+        }
+        return target;
+    }
+    
+    double[][] convertImages(int[][][] images) {
+        double[][] arr = new double[images.length][images[0].length * images[0][0].length];
+        for (int i = 0; i < images.length; i++) {
+            for (int j = 0; j < images[0].length; j++) {
+                for (int k = 0; k < images[0][0].length; k++) {
+                    arr[i][j * images[0].length + k] = (double)images[i][j][k] * (1d/255d);
+                }
+            }
+
+        }
+        return arr;
+    }
+
+    private void log(String msg) {
+        Main.log(msg);
+    }
+    
 }

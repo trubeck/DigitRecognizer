@@ -1,3 +1,6 @@
+import sun.nio.ch.Net;
+
+import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -64,20 +67,66 @@ public class Main {
             }
 
         }
-//        if (imagesFilepath != null) {
-//            int[][][] numberSet = new Parser().parseImage(new File(imagesFilepath));
+
+
+        Network net = new Network(new int[]{28 * 28, 16, 16, 10});
+
+        double[][] imageSet = null;
+        if (imagesFilepath != null) {
+            imageSet = net.convertImages(new Parser().parseImage(new File(imagesFilepath)));
+        }
+        else {
+            log("Alles kacke");
+            System.exit(-1);
+        }
+
+        double[][] labelSet = null;
+        if (labelsFilepath != null) {
+            labelSet = net.convertLables(new Parser().parseLabel(new File(labelsFilepath)));
+        }
+        else {
+            log("Alles kacke");
+            System.exit(-1);
+        }
+
+//        double[] input = new double[] {0.1, 0.8, 0.4, 0.7};
+//        double[] target = new double[] {0, 1};
+
+
+//        net.convertImages(numberSet);
+
+//        for (int i = 0; i < 100; i++) {
+//            net.train(input, target, 0.3);
 //        }
 
-        Network net = new Network(new int[]{4, 5, 5, 2});
+        int bla = 10;
+        for (int i = 0; i < bla; i++) {
+//            if (i != 0 && i % (bla / 10) == 0) {
+//                log("gelernt: " + ((double)i / (double)bla* 100) + "% done", true);
+//            }
+            net.trainAll(imageSet, labelSet, 0.3);
+        }
+
         System.out.println("net = " + Arrays.toString(net.LAYER_SIZE));
-        System.out.println("net.feedForward() = " + Arrays.toString(net.feedForward(new double[] {1d, 2d, 3d, 4d})));
+        System.out.println(Arrays.toString(labelSet[0]) + " so soll sein");
+        System.out.println("net.feedForward() = " + Arrays.toString(net.feedForward(imageSet[0])));
 
     }
 
+    static void log(String msg, boolean debug) {
+        if (debug) {
+            Date date = new Date(System.currentTimeMillis());
+            DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
+            System.out.println(formatter.format(date) + " " + msg);
+        }
+    }
+
     static void log(String msg) {
-        Date date = new Date(System.currentTimeMillis());
-        DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
-        System.out.println(formatter.format(date) + " " + msg);
+        if (debug) {
+            Date date = new Date(System.currentTimeMillis());
+            DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
+            System.out.println(formatter.format(date) + " " + msg);
+        }
     }
 
 }
