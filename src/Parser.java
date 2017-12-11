@@ -30,11 +30,11 @@ class Parser {
                     }
                 }
                 // output progress
-                if (maxImages > 10) {
-                    if (numImage != 0 && numImage % (maxImages / 10) == 0) {
-                        log("Parsing images: " + ((double)numImage / (double)maxImages * 100) + "% done", true);
-                    }
-                }
+//                if (maxImages > 10) {
+//                    if (numImage != 0 && numImage % (maxImages / 10) == 0) {
+//                        log("Parsing images: " + ((double)numImage / (double)maxImages * 100) + "% done", true);
+//                    }
+//                }
             }
             
             log("Image parsing done", true);

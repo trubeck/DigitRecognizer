@@ -1,0 +1,31 @@
+{
+  "netsize": [784, 30, 30, 10],
+  "learningtype": "bp",
+  "alreadylearned": 15000,
+  "weightslayer":[
+    {
+      "neuron":[
+        {
+          "weights":[0.34, 0.25]
+        },
+        {
+          "weights":[]
+        }
+      ]
+    }
+  ],
+  "outputlayer":[
+    {
+      "neuron":[]
+    }
+  ],
+  "biaslayer":[
+    {
+      "neuron":[]
+    }
+  ]
+}
+
+
+
+

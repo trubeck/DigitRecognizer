@@ -1,6 +1,5 @@
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Random;
 
 class Network {
 
@@ -88,8 +87,8 @@ class Network {
     void train(double[] input, double[] target, double learningRate) {
         if (input.length == INPUT_SIZE) {
             feedForward(input);
-            backpropagation(target);
-            updateweights(learningRate);
+            learnBP(target);
+            updateweightsBP(learningRate);
         }
     }
     
@@ -120,8 +119,7 @@ class Network {
         return output[NUM_LAYERS - 1];
     }
     
-    private void backpropagation(double[] target) {
-        
+    private void learnBP(double[] target) {
         if (target.length != OUTPUT_SIZE) {
             System.out.println("Wrong label size!");
             return;
@@ -129,12 +127,12 @@ class Network {
         
         // output layer
         for (int neuron = 0; neuron < OUTPUT_SIZE; neuron++) {
+            //TODO: switch tarjet and output
             error[NUM_LAYERS - 1][neuron] = (output[NUM_LAYERS - 1][neuron] - target[neuron]) * derivative[NUM_LAYERS - 1][neuron];
         }
         
         // every hidden layer back to front
         for (int layer = NUM_LAYERS - 2; layer > 0; layer--) {
-    
             for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
                 double sum = 0;
                 for (int nextNeuron = 0; nextNeuron < LAYER_SIZE[layer + 1]; nextNeuron++) {
@@ -142,11 +140,10 @@ class Network {
                 }
                 error[layer][neuron] = sum * derivative[layer][neuron];
             }
-            
         }
     }
 
-    private void updateweights(double learningRate) {
+    private void updateweightsBP(double learningRate) {
         for (int layer = 1; layer < NUM_LAYERS; layer++) {
             for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
                 for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
@@ -154,7 +151,47 @@ class Network {
                 }
                 bias[layer][neuron] += -learningRate * error[layer][neuron];
             }
-            
+
+        }
+    }
+
+    //TODO: ask if delta == d
+    private void learnERS(double[] target) {
+        if (target.length != OUTPUT_SIZE) {
+            System.out.println("Wrong label size!");
+            return;
+        }
+
+        // output layer
+        for (int neuron = 0; neuron < OUTPUT_SIZE; neuron++) {
+            error[NUM_LAYERS - 1][neuron] = target[neuron] - output[NUM_LAYERS - 1][neuron];
+        }
+
+        // every hidden layer back to front
+        for (int layer = NUM_LAYERS - 2; layer > 0; layer--) {
+            for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
+                double sum = 0;
+                for (int nextNeuron = 0; nextNeuron < LAYER_SIZE[layer + 1]; nextNeuron++) {
+                    sum += weights[layer + 1][neuron][nextNeuron] * error[layer + 1][nextNeuron];
+                }
+                error[layer][neuron] = sum;
+            }
+
+        }
+    }
+
+    // ERS
+    // TODO: ist c die Lernrate?
+    // TODO: w_ij(t) ist eine Funktion?
+    private void updateweightsERS(double c) {
+        for (int layer = 1; layer < NUM_LAYERS; layer++) {
+            for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
+                for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
+                    weights[layer][prevNeuron][neuron] += c * Math.abs(1 - Math.abs(weights[0][0][0])) * error[layer][neuron] * signum(output[layer - 1][prevNeuron]);
+                }
+                bias[layer][neuron] += c * error[layer][neuron];
+            }
+
         }
     }
 
@@ -182,12 +219,17 @@ class Network {
                 maxValue = array[i];
             }
         }
-        
         return max;
     }
     
     private double sigmoid(double x) {
         return 1d / (1 + Math.exp(-x));
+    }
+
+    private double signum(double x) {
+        if (x < 0) return -1;
+        else if (x == 0) return 0;
+        else return 1;
     }
 
     double[][] convertLables(int[] labels) {
