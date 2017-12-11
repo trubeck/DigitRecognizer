@@ -3,7 +3,7 @@ import java.io.*;
 
 class Parser {
     
-    int[][][] parseImage(File f) {
+    int[][][] parseImage(File f, int minImages, int maxImages) {
         try {
             FileInputStream images = new FileInputStream(f);
             
@@ -17,9 +17,12 @@ class Parser {
             log("numberOfRows = " + numberOfRows);
             log("numberOfColumns = " + numberOfColumns);
 
-            int[][][] numberSet = new int[numberOfImages][numberOfRows][numberOfColumns];
-            
-            for (int numImage = 0; numImage < numberOfImages; numImage++) {
+            int[][][] numberSet = new int[maxImages - minImages][numberOfRows][numberOfColumns];
+
+            //noinspection ResultOfMethodCallIgnored
+            images.skip(minImages * numberOfColumns * numberOfRows);
+
+            for (int numImage = 0; numImage < maxImages - minImages; numImage++) {
                 for (int numCol = 0; numCol < numberOfColumns; numCol++) {
                     for (int numRow = 0; numRow < numberOfRows; numRow++) {
                         numberSet[numImage][numRow][numCol] = images.read();
@@ -27,8 +30,10 @@ class Parser {
                     }
                 }
                 // output progress
-                if (numImage != 0 && numImage % (numberOfImages / 10) == 0) {
-                    log("Parsing images: " + ((double)numImage / (double)numberOfImages * 100) + "% done", true);
+                if (maxImages > 10) {
+                    if (numImage != 0 && numImage % (maxImages / 10) == 0) {
+                        log("Parsing images: " + ((double)numImage / (double)maxImages * 100) + "% done", true);
+                    }
                 }
             }
             
@@ -43,16 +48,18 @@ class Parser {
         return null;
     }
     
-    int[] parseLabel(File f) {
+    int[] parseLabel(File f, int minLabels, int maxLabels) {
         try {
             FileInputStream labels = new FileInputStream(f);
             
             int magicNumberLabels = (labels.read() << 24) | (labels.read() << 16) | (labels.read() << 8) | (labels.read());
             int numberOfLabels = (labels.read() << 24) | (labels.read() << 16) | (labels.read() << 8) | (labels.read());
             
-            int[] labelSet = new int[numberOfLabels];
+            int[] labelSet = new int[maxLabels - minLabels];
             
-            for (int numLabels = 0; numLabels < numberOfLabels; numLabels++) {
+            labels.skip(minLabels);
+
+            for (int numLabels = 0; numLabels < maxLabels - minLabels; numLabels++) {
                 labelSet[numLabels] = labels.read();
 
                 log("" + labelSet[numLabels]);

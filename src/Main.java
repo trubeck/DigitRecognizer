@@ -1,9 +1,6 @@
-import sun.nio.ch.Net;
-
 import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 
 public class Main {
@@ -69,48 +66,93 @@ public class Main {
         }
 
 
-        Network net = new Network(new int[]{28 * 28, 16, 16, 10});
+        Network net = new Network(new int[]{28 * 28, 30, 30, 10});
+        int setSize = 60000;
+        int batchSize = 5000;
 
+        for (int i = 0; i < Math.abs(setSize/batchSize); i++) {
+    
+            log("----------", true);
+            log("== BATCH " + (i + 1) + "/" + (Math.abs(setSize/batchSize)) + "           " +  (i*batchSize) + " to " + (i*batchSize+batchSize) + " ==", true);
+            log("----------", true);
+            
+            double[][] imageSet = null;
+            if (imagesFilepath != null) {
+                imageSet = net.convertImages(new Parser().parseImage(new File(imagesFilepath), i*batchSize, i*batchSize+batchSize));
+            }
+            else {
+                log("no filepath for images given");
+                System.exit(-1);
+            }
+
+            double[][] labelSet = null;
+            if (labelsFilepath != null) {
+                labelSet = net.convertLables(new Parser().parseLabel(new File(labelsFilepath), i*batchSize, i*batchSize+batchSize));
+            }
+            else {
+                log("no filepath for labels given");
+                System.exit(-1);
+            }
+
+
+            int bla = 10;
+
+            for (int j = 0; j < bla; j++) {
+                if (j != 0 && j % (bla / 10) == 0) {
+                    log("learning: " + ((double)j / (double)bla* 100) + "% done", true);
+                }
+                net.trainAll(imageSet, labelSet, 0.3);
+            }
+
+        }
+    
         double[][] imageSet = null;
         if (imagesFilepath != null) {
-            imageSet = net.convertImages(new Parser().parseImage(new File(imagesFilepath)));
+            imageSet = net.convertImages(new Parser().parseImage(new File(imagesFilepath), 0, 1000));
         }
         else {
-            log("Alles kacke");
+            log("no filepath for images given");
             System.exit(-1);
         }
-
+    
         double[][] labelSet = null;
         if (labelsFilepath != null) {
-            labelSet = net.convertLables(new Parser().parseLabel(new File(labelsFilepath)));
+            labelSet = net.convertLables(new Parser().parseLabel(new File(labelsFilepath), 0, 1000));
         }
         else {
-            log("Alles kacke");
+            log("no filepath for labels given");
             System.exit(-1);
         }
 
-//        double[] input = new double[] {0.1, 0.8, 0.4, 0.7};
-//        double[] target = new double[] {0, 1};
+        net.testing(imageSet, labelSet);
 
 
-//        net.convertImages(numberSet);
 
-//        for (int i = 0; i < 100; i++) {
-//            net.train(input, target, 0.3);
-//        }
+    }
+    static void printLabel(double[] label) {
+        for (int i = 0; i < label.length; i++) {
+            if (label[i] == 1.0){
+                System.out.println(i);
+            }
 
-        int bla = 10;
-        for (int i = 0; i < bla; i++) {
-//            if (i != 0 && i % (bla / 10) == 0) {
-//                log("gelernt: " + ((double)i / (double)bla* 100) + "% done", true);
-//            }
-            net.trainAll(imageSet, labelSet, 0.3);
         }
+    }
 
-        System.out.println("net = " + Arrays.toString(net.LAYER_SIZE));
-        System.out.println(Arrays.toString(labelSet[0]) + " so soll sein");
-        System.out.println("net.feedForward() = " + Arrays.toString(net.feedForward(imageSet[0])));
-
+    static void printImage(double[] image) {
+        for (int i = 0; i < 28*28; i++) {
+            if (image[i] == 0.0){
+                System.out.print(".");
+            }
+            else if (image[i] > .5) {
+                System.out.print("#");
+            }
+            else {
+                System.out.print("O");
+            }
+            if (i != 0 && i % 28 == 0){
+                System.out.println("");
+            }
+        }
     }
 
     static void log(String msg, boolean debug) {

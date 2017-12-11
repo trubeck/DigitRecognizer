@@ -1,3 +1,5 @@
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Random;
 
 class Network {
@@ -15,13 +17,13 @@ class Network {
     final int[] LAYER_SIZE;
 
     // [layer][neuron prevlayer][neuron currentlayer]
-    private double[][][] weights;
+    double[][][] weights;
 
     // [layer][toNeuron]
     private double[][] bias;
 
     // output of a specific neuron [layer][neuron]
-    private double[][] output;
+    double[][] output;
     
     // TODO: NEW VARIABLES
     private double[][] error;
@@ -49,7 +51,7 @@ class Network {
             // randomize biases
             bias[layer] = new double[LAYER_SIZE[layer]];
             for (int j = 0; j < LAYER_SIZE[layer]; j++) {
-            bias[layer][j] = Math.random();
+            bias[layer][j] = -0.3 + Math.random() * 0.6;
             }
             
             // randomize weights
@@ -57,7 +59,7 @@ class Network {
                 weights[layer] = new double[LAYER_SIZE[layer - 1]][LAYER_SIZE[layer]];
                 for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
                     for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
-                        weights[layer][prevNeuron][neuron] = Math.random();
+                        weights[layer][prevNeuron][neuron] = -0.3 + Math.random() * 0.6;
                     }
                 }
             }
@@ -121,7 +123,7 @@ class Network {
     private void backpropagation(double[] target) {
         
         if (target.length != OUTPUT_SIZE) {
-            log("Wrong label size!");
+            System.out.println("Wrong label size!");
             return;
         }
         
@@ -155,6 +157,34 @@ class Network {
             
         }
     }
+
+    void testing(double[][] images, double[][] labels){
+        int correct = 0;
+        double rate = 0;
+        for (int i = 0; i < images.length; i++) {
+            double[] temp = feedForward(images[i]);
+            if (findMax(temp) == findMax(labels[i])) {
+                correct++;
+                rate += temp[findMax(temp)];
+            }
+        }
+
+        System.out.println("Correct: " + correct + "/" + images.length);
+        System.out.println("Correctness: " + round(rate/(double)(images.length) * 100, 2) + "%");
+    }
+    
+    private int findMax(double[] array){
+        int max = -1;
+        double maxValue = 0.0;
+        for (int i = 0; i < array.length; i++) {
+            if(array[i] > maxValue){
+                max = i;
+                maxValue = array[i];
+            }
+        }
+        
+        return max;
+    }
     
     private double sigmoid(double x) {
         return 1d / (1 + Math.exp(-x));
@@ -173,12 +203,22 @@ class Network {
         for (int i = 0; i < images.length; i++) {
             for (int j = 0; j < images[0].length; j++) {
                 for (int k = 0; k < images[0][0].length; k++) {
-                    arr[i][j * images[0].length + k] = (double)images[i][j][k] * (1d/255d);
+                    arr[i][j * images[0].length + k] = (double)images[i][k][j] * (1d/255d);
                 }
             }
 
         }
         return arr;
+    }
+
+    private double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+        if (Double.isNaN(value)) {
+            return 0.0;
+        }
+        BigDecimal bd = new BigDecimal(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 
     private void log(String msg) {
