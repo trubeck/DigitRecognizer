@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -19,14 +20,22 @@ public class Main {
     private static final String PARAM_LABELS_SHORT = "-l";
     private static final String PARAM_TESTING_LABELS = "--testinglabels";
     private static final String PARAM_TESTING_LABELS_SHORT = "-tl";
+    private static final String PARAM_LOAD_NETWORK = "--loadnetwork";
+    private static final String PARAM_LOAD_NETWORK_SHORT = "-load";
+    
+    // learning methods
+    static final String BP = "bp";
+    static final String ERS = "ers";
+    static final String ERS2 = "ers2";
 
     private static String imagesFilepath = null;
     private static String testingImagesFilepath = null;
     private static String labelsFilepath = null;
     private static String testingLabelsFilepath = null;
+    private static String loadNetworkFilename = null;
     static boolean debug = false;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // call save method here
@@ -76,6 +85,13 @@ public class Main {
                         i++;
                         testingLabelsFilepath = args[i];
                         break;
+                        
+                    // load network
+                    case PARAM_LOAD_NETWORK_SHORT:
+                    case PARAM_LOAD_NETWORK:
+                        i++;
+                        loadNetworkFilename = args[i];
+                        break;
 
                     default:
                         System.out.println("unknown parameter: \"" + args[i] + "\"\n");
@@ -86,20 +102,15 @@ public class Main {
 
         }
 
-        // TODO: adapt learning rate
+        String learningMethod = ERS;
 
-        Network net = new Network(new int[]{28 * 28, 50, 30, 10});
-        int setSize = 60000;
-        int batchSize = 5000;
-        int learnIterations = 100;
-
-        for (int i = 0; i < Math.abs(setSize/batchSize); i++) {
-
-            log("== BATCH " + (i + 1) + "/" + (Math.abs(setSize/batchSize)) + " (" +  (i*batchSize) + " to " + (i*batchSize+batchSize) + ") ==", true);
+        if (loadNetworkFilename != null) {
+            
+            Network net = new Network(loadNetworkFilename);
 
             double[][] imageSet = null;
-            if (imagesFilepath != null) {
-                imageSet = net.convertImages(new Parser().parseImage(new File(imagesFilepath), i*batchSize, i*batchSize+batchSize));
+            if (testingImagesFilepath != null) {
+                imageSet = net.convertImages(new Parser().parseImage(new File(testingImagesFilepath), 0, 10000));
             }
             else {
                 log("no filepath for images given");
@@ -107,43 +118,81 @@ public class Main {
             }
 
             double[][] labelSet = null;
-            if (labelsFilepath != null) {
-                labelSet = net.convertLables(new Parser().parseLabel(new File(labelsFilepath), i*batchSize, i*batchSize+batchSize));
+            if (testingLabelsFilepath != null) {
+                labelSet = net.convertLables(new Parser().parseLabel(new File(testingLabelsFilepath), 0, 10000));
             }
             else {
                 log("no filepath for labels given");
                 System.exit(-1);
             }
 
-            for (int j = 0; j < learnIterations; j++) {
-                if (j != 0 && j % (learnIterations / 10) == 0) {
-                    log("learning: " + ((double)j / (double)learnIterations* 100) + "% done", true);
+            System.out.println("Anzahl Neuronen/Layer " + Arrays.toString(net.LAYER_SIZE));
+            net.testing(imageSet, labelSet, learningMethod);
+        }
+        
+        else {
+            Network net = new Network(new int[]{28 * 28, 50
+                    , 50, 10});
+            int setSize = 60000;
+            int batchSize = 5000;
+            int learnIterations = 2;
+            double learningRate = 0.01;
+            double momentum = 0.0;
+
+            for (int i = 0; i < Math.abs(setSize/batchSize); i++) {
+        
+                log("== BATCH " + (i + 1) + "/" + (Math.abs(setSize/batchSize)) + " (" +  (i*batchSize) + " to " + (i*batchSize+batchSize) + ") ==", true);
+        
+                double[][] imageSet = null;
+                if (imagesFilepath != null) {
+                    imageSet = net.convertImages(new Parser().parseImage(new File(imagesFilepath), i*batchSize, i*batchSize+batchSize));
                 }
-                net.trainAll(imageSet, labelSet, 0.3);
+                else {
+                    log("no filepath for images given");
+                    System.exit(-1);
+                }
+        
+                double[][] labelSet = null;
+                if (labelsFilepath != null) {
+                    labelSet = net.convertLables(new Parser().parseLabel(new File(labelsFilepath), i*batchSize, i*batchSize+batchSize));
+                }
+                else {
+                    log("no filepath for labels given");
+                    System.exit(-1);
+                }
+        
+                for (int j = 0; j < learnIterations; j++) {
+                    /*if (j != 0 && j % (learnIterations / 10) == 0) {
+                        log("learning: " + ((double)j / (double)learnIterations* 100) + "% done", true);
+                    }*/
+                    net.trainAll(imageSet, labelSet, learningRate, learningMethod, momentum);
+                    // bei ers kleine Lernrate (0.03 oder 0.06) nehmen
+                }
             }
+            double[][] imageSet = null;
+            if (testingImagesFilepath != null) {
+                imageSet = net.convertImages(new Parser().parseImage(new File(testingImagesFilepath), 0, 10000));
+            }
+            else {
+                log("no filepath for images given");
+                System.exit(-1);
+            }
+    
+            double[][] labelSet = null;
+            if (testingLabelsFilepath != null) {
+                labelSet = net.convertLables(new Parser().parseLabel(new File(testingLabelsFilepath), 0, 10000));
+            }
+            else {
+                log("no filepath for labels given");
+                System.exit(-1);
+            }
+    
+            System.out.println("Anzahl Neuronen/Layer " + Arrays.toString(net.LAYER_SIZE));
+            System.out.println("Anzahl Iterationen: " + learnIterations);
+            net.saveNetwork();
+            // net.testing(imageSet, labelSet);
         }
-
-        double[][] imageSet = null;
-        if (testingImagesFilepath != null) {
-            imageSet = net.convertImages(new Parser().parseImage(new File(testingImagesFilepath), 0, 10000));
-        }
-        else {
-            log("no filepath for images given");
-            System.exit(-1);
-        }
-
-        double[][] labelSet = null;
-        if (testingLabelsFilepath != null) {
-            labelSet = net.convertLables(new Parser().parseLabel(new File(testingLabelsFilepath), 0, 10000));
-        }
-        else {
-            log("no filepath for labels given");
-            System.exit(-1);
-        }
-
-        System.out.println("Anzahl Neuronen/Layer " + Arrays.toString(net.LAYER_SIZE));
-        System.out.println("Anzahl Iterationen: " + learnIterations);
-        net.testing(imageSet, labelSet);
+        
     }
 
     static void printLabel(double[] label) {

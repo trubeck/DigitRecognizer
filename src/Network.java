@@ -1,3 +1,4 @@
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -17,6 +18,7 @@ class Network {
 
     // [layer][neuron prevlayer][neuron currentlayer]
     double[][][] weights;
+    double[][][] deltaweights; // difference last iteration
 
     // [layer][toNeuron]
     private double[][] bias;
@@ -28,7 +30,142 @@ class Network {
     private double[][] error;
     private double[][] derivative;
     
+
+    Network(String filename) throws IOException {
+
+
+        BufferedReader br = new BufferedReader(new FileReader(filename));
+
+        String line = br.readLine();
+        NUM_LAYERS = Integer.parseInt(line.split(",")[0]);
+        INPUT_SIZE = Integer.parseInt(line.split(",")[1]);
+        OUTPUT_SIZE = Integer.parseInt(line.split(",")[2]);
+
+        //TODO: Check if readline == null
+        line = br.readLine();
+        LAYER_SIZE = new int[NUM_LAYERS];
+        String[] arr = line.split(",");
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            LAYER_SIZE[i] = Integer.parseInt(arr[i]);
+        }
+
+        line = br.readLine();
+        arr = line.split(",");
+
+        // weight init
+        weights = new double[NUM_LAYERS][][];
+        for (int layer = 1; layer < NUM_LAYERS; layer++) {
+            weights[layer] = new double[LAYER_SIZE[layer - 1]][LAYER_SIZE[layer]];
+        }
+
+        // weight read
+        int counter = 0;
+        for (int i = 1; i < NUM_LAYERS; i++) {
+            for (int j = 0; j < LAYER_SIZE[i - 1]; j++) {
+                for (int k = 0; k < LAYER_SIZE[i]; k++) {
+                    weights[i][j][k] = Double.parseDouble(arr[counter]);
+                    counter++;
+                }
+            }
+        }
+
+        line = br.readLine();
+        arr = line.split(",");
+
+        // deltaweight init
+        deltaweights = new double[NUM_LAYERS][][];
+        for (int layer = 1; layer < NUM_LAYERS; layer++) {
+            deltaweights[layer] = new double[LAYER_SIZE[layer - 1]][LAYER_SIZE[layer]];
+        }
+
+        // deltaweight read
+        counter = 0;
+        for (int i = 1; i < NUM_LAYERS; i++) {
+            for (int j = 0; j < LAYER_SIZE[i - 1]; j++) {
+                for (int k = 0; k < LAYER_SIZE[i]; k++) {
+                    deltaweights[i][j][k] = Double.parseDouble(arr[counter]);
+                    counter++;
+                }
+            }
+        }
     
+        line = br.readLine();
+        arr = line.split(",");
+    
+        // bias init
+        bias = new double[NUM_LAYERS][];
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            bias[i] = new double[LAYER_SIZE[i]];
+        }
+    
+        // bias read
+        counter = 0;
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                bias[i][j] = Double.parseDouble(arr[counter]);
+                counter++;
+            }
+        }
+    
+        line = br.readLine();
+        arr = line.split(",");
+    
+        // output init
+        output = new double[NUM_LAYERS][];
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            output[i] = new double[LAYER_SIZE[i]];
+        }
+    
+        // output read
+        counter = 0;
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                output[i][j] = Double.parseDouble(arr[counter]);
+                counter++;
+            }
+        }
+    
+        line = br.readLine();
+        arr = line.split(",");
+    
+        // error init
+        error = new double[NUM_LAYERS][];
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            error[i] = new double[LAYER_SIZE[i]];
+        }
+    
+        // error read
+        counter = 0;
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                error[i][j] = Double.parseDouble(arr[counter]);
+                counter++;
+            }
+        }
+    
+        line = br.readLine();
+        arr = line.split(",");
+    
+        // derivative init
+        derivative = new double[NUM_LAYERS][];
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            derivative[i] = new double[LAYER_SIZE[i]];
+        }
+    
+        // derivative read
+        counter = 0;
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                derivative[i][j] = Double.parseDouble(arr[counter]);
+                counter++;
+            }
+        }
+
+        br.close();
+
+
+    }
+
     Network(int[] layer_size) {
         this.LAYER_SIZE = layer_size;
         this.NUM_LAYERS = layer_size.length;
@@ -37,6 +174,7 @@ class Network {
 
         output = new double[NUM_LAYERS][];
         weights = new double[NUM_LAYERS][][];
+        deltaweights = new double[NUM_LAYERS][][];
         bias = new double[NUM_LAYERS][];
         error = new double[NUM_LAYERS][];
         derivative = new double[NUM_LAYERS][];
@@ -50,7 +188,7 @@ class Network {
             // randomize biases
             bias[layer] = new double[LAYER_SIZE[layer]];
             for (int j = 0; j < LAYER_SIZE[layer]; j++) {
-            bias[layer][j] = -0.3 + Math.random() * 0.6;
+                bias[layer][j] = -1 + Math.random() * 2;
             }
             
             // randomize weights
@@ -58,48 +196,61 @@ class Network {
                 weights[layer] = new double[LAYER_SIZE[layer - 1]][LAYER_SIZE[layer]];
                 for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
                     for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
-                        weights[layer][prevNeuron][neuron] = -0.3 + Math.random() * 0.6;
+                        weights[layer][prevNeuron][neuron] = -1 + Math.random() * 2;
+                    }
+                }
+            }
+
+            // init deltaweights with 0
+            if (layer > 0) {
+                deltaweights[layer] = new double[LAYER_SIZE[layer - 1]][LAYER_SIZE[layer]];
+                for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
+                    for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
+                        deltaweights[layer][prevNeuron][neuron] = 0d;
                     }
                 }
             }
         }
     }
 
-    void trainSubSet(double[][] input, double[][] target, int start, int end, double learningRate) {
-        //adapt input
-        double[][] subsetInput = new double[input.length][end - start];
-        double[][] subsetTarget = new double[target.length][end - start];
-        for (int i = start; i < end; i++) {
-            subsetInput[i] = input[start+i];
-            subsetTarget[i] = target[start+i];
-        }
-
-
-        trainAll(subsetInput, subsetTarget, learningRate);
-    }
-
-    void trainAll(double[][] input, double[][] target, double learningRate) {
+    void trainAll(double[][] input, double[][] target, double learningRate, String learningMethod, double momentum) {
         for (int i = 0; i < input.length; i++) {
-            train(input[i], target[i], learningRate);
+            log("i = " + i);
+            train(input[i], target[i], learningRate, learningMethod, momentum);
         }
     }
     
-    void train(double[] input, double[] target, double learningRate) {
-        if (input.length == INPUT_SIZE) {
-            feedForward(input);
-            learnBP(target);
-            updateweightsBP(learningRate);
+    private void train(double[] input, double[] target, double learningRate, String learningMethod, double momentum) {
+        if (learningMethod.equals(Main.BP)) {
+            if (input.length == INPUT_SIZE) {
+                feedForward(input, learningMethod);
+                learnBP(target);
+                updateweightsBP(learningRate, momentum);
+            }
+        } else if (learningMethod.equals(Main.ERS)) {
+            if (input.length == INPUT_SIZE) {
+                feedForward(input, learningMethod);
+                learnERS(target);
+                updateweightsERS(learningRate, momentum);
+            }
+        } else if (learningMethod.equals(Main.ERS2)) {
+            if (input.length == INPUT_SIZE) {
+                // hier kommt ers2 hin
+            }
+        } else {
+            log("Unknown learning Method!");
         }
+
     }
     
-    double[] feedForward(double[] input) {
+    private double[] feedForward(double[] input, String learningMethod) {
         if (input.length != INPUT_SIZE) {
             log("feedForward(): input size does not equal first networklayer size!");
             log("input: " + input.length);
             log("layersize: " + input.length);
             return null;
         }
-        this.output[0] = input;
+        output[0] = input;
         
         for (int layer = 1; layer < NUM_LAYERS; layer++) {
             for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
@@ -111,7 +262,17 @@ class Network {
                 for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
                     sum += output[layer - 1][prevNeuron] * weights[layer][prevNeuron][neuron];
                 }
-                output[layer][neuron] = sigmoid(sum);
+
+                // use logistic for backprop
+                if (learningMethod.equals(Main.BP)) {
+                    output[layer][neuron] = sigmoid(sum);
+                }
+                // use tanh for ERS and ERS2
+                else if (learningMethod.equals(Main.ERS) || learningMethod.equals(Main.ERS2)) {
+                    output[layer][neuron] = Math.tanh(sum);
+                }
+
+                // for BP
                 derivative[layer][neuron] = output[layer][neuron] * (1 - output[layer][neuron]);
             }
         }
@@ -143,11 +304,14 @@ class Network {
         }
     }
 
-    private void updateweightsBP(double learningRate) {
+    private void updateweightsBP(double learningRate, double momentum) {
         for (int layer = 1; layer < NUM_LAYERS; layer++) {
             for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
                 for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
-                    weights[layer][prevNeuron][neuron] += -learningRate * output[layer - 1][prevNeuron] * error[layer][neuron];
+                    double deltaweight = -learningRate * output[layer - 1][prevNeuron] * error[layer][neuron];
+                    //weights[layer][prevNeuron][neuron] += (1 - momentum) * deltaweight + momentum * deltaweights[layer][prevNeuron][neuron];
+                    weights[layer][prevNeuron][neuron] += deltaweight + momentum * deltaweights[layer][prevNeuron][neuron];
+                    deltaweights[layer][prevNeuron][neuron] = deltaweight;
                 }
                 bias[layer][neuron] += -learningRate * error[layer][neuron];
             }
@@ -155,7 +319,21 @@ class Network {
         }
     }
 
-    //TODO: ask if delta == d
+
+    // tanh implementieren
+    private void updateweightsERS(double learningRate, double momentum) {
+        for (int layer = 1; layer < NUM_LAYERS; layer++) {
+            for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
+                for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
+                    double deltaweight = learningRate * Math.abs(1 - Math.abs(weights[layer][prevNeuron][neuron])) * error[layer][neuron] * signum(output[layer - 1][prevNeuron]);
+                    weights[layer][prevNeuron][neuron] += deltaweight + momentum * deltaweights[layer][prevNeuron][neuron];
+                    deltaweights[layer][prevNeuron][neuron] = deltaweight;
+                }
+                bias[layer][neuron] += learningRate * error[layer][neuron];
+            }
+        }
+    }
+
     private void learnERS(double[] target) {
         if (target.length != OUTPUT_SIZE) {
             System.out.println("Wrong label size!");
@@ -180,26 +358,11 @@ class Network {
         }
     }
 
-    // ERS
-    // TODO: ist c die Lernrate?
-    // TODO: w_ij(t) ist eine Funktion?
-    private void updateweightsERS(double c) {
-        for (int layer = 1; layer < NUM_LAYERS; layer++) {
-            for (int neuron = 0; neuron < LAYER_SIZE[layer]; neuron++) {
-                for (int prevNeuron = 0; prevNeuron < LAYER_SIZE[layer - 1]; prevNeuron++) {
-                    weights[layer][prevNeuron][neuron] += c * Math.abs(1 - Math.abs(weights[0][0][0])) * error[layer][neuron] * signum(output[layer - 1][prevNeuron]);
-                }
-                bias[layer][neuron] += c * error[layer][neuron];
-            }
-
-        }
-    }
-
-    void testing(double[][] images, double[][] labels){
+    void testing(double[][] images, double[][] labels, String learningMethod) {
         int correct = 0;
         double rate = 0;
         for (int i = 0; i < images.length; i++) {
-            double[] temp = feedForward(images[i]);
+            double[] temp = feedForward(images[i], learningMethod);
             if (findMax(temp) == findMax(labels[i])) {
                 correct++;
                 rate += temp[findMax(temp)];
@@ -207,14 +370,14 @@ class Network {
         }
 
         System.out.println("Correct: " + correct + "/" + images.length);
-        System.out.println("Correctness: " + round(rate/(double)(images.length) * 100, 2) + "%");
+        System.out.println("Correctness: " + round(rate / (double) (images.length) * 100) + "%");
     }
     
-    private int findMax(double[] array){
+    private int findMax(double[] array) {
         int max = -1;
         double maxValue = 0.0;
         for (int i = 0; i < array.length; i++) {
-            if(array[i] > maxValue){
+            if (array[i] > maxValue) {
                 max = i;
                 maxValue = array[i];
             }
@@ -245,7 +408,7 @@ class Network {
         for (int i = 0; i < images.length; i++) {
             for (int j = 0; j < images[0].length; j++) {
                 for (int k = 0; k < images[0][0].length; k++) {
-                    arr[i][j * images[0].length + k] = (double)images[i][k][j] * (1d/255d);
+                    arr[i][j * images[0].length + k] = (double) images[i][k][j] * (1d / 255d);
                 }
             }
 
@@ -253,18 +416,110 @@ class Network {
         return arr;
     }
 
-    private double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
+    private double round(double value) {
         if (Double.isNaN(value)) {
             return 0.0;
         }
         BigDecimal bd = new BigDecimal(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
 
     private void log(String msg) {
         Main.log(msg);
     }
-    
+
+
+    @SuppressWarnings("Duplicates")
+    void saveNetwork() {
+        try {
+            FileWriter fileWriter = new FileWriter("savedNetwork.csv");
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.valueOf(NUM_LAYERS));
+            sb.append(",");
+            sb.append(String.valueOf(INPUT_SIZE));
+            sb.append(",");
+            sb.append(String.valueOf(OUTPUT_SIZE));
+            sb.append("\n");
+
+            for (int i = 0; i < LAYER_SIZE.length; i++) {
+                sb.append(String.valueOf(LAYER_SIZE[i]));
+                    sb.append(",");
+            }
+            
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+
+            for (int i = 1; i < NUM_LAYERS; i++) {
+                for (int j = 0; j < LAYER_SIZE[i - 1]; j++) {
+                    for (int k = 0; k < LAYER_SIZE[i]; k++) {
+                        sb.append(String.valueOf(weights[i][j][k]));
+                        sb.append(",");
+                        
+                    }
+                }
+            }
+
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+            
+            for (int i = 1; i < NUM_LAYERS; i++) {
+                for (int j = 0; j < LAYER_SIZE[i - 1]; j++) {
+                    for (int k = 0; k < LAYER_SIZE[i]; k++) {
+                        sb.append(String.valueOf(deltaweights[i][j][k]));
+                        sb.append(",");
+                    }
+                }
+            }
+
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+
+            for (int i = 0; i < NUM_LAYERS; i++) {
+                for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                    sb.append(String.valueOf(bias[i][j]));
+                    sb.append(",");
+                }
+            }
+
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+
+            for (int i = 0; i < NUM_LAYERS; i++) {
+                for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                    sb.append(String.valueOf(output[i][j]));
+                    sb.append(",");
+                }
+            }
+
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+
+            for (int i = 0; i < NUM_LAYERS; i++) {
+                for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                    sb.append(String.valueOf(error[i][j]));
+                    sb.append(",");
+                }
+            }
+
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+
+            for (int i = 0; i < NUM_LAYERS; i++) {
+                for (int j = 0; j < LAYER_SIZE[i]; j++) {
+                    sb.append(String.valueOf(derivative[i][j]));
+                    sb.append(",");
+                }
+            }
+
+            sb.setLength(sb.length() -1);
+            sb.append("\n");
+
+            fileWriter.append(sb.toString());
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

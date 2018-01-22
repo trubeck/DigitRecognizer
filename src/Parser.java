@@ -37,7 +37,7 @@ class Parser {
 //                }
             }
             
-            log("Image parsing done", true);
+//            log("Image parsing done", true);
             
             
             return numberSet;
@@ -66,7 +66,7 @@ class Parser {
 
             }
             
-            log("Label parsing done", true);
+//            log("Label parsing done", true);
             
             return labelSet;
             
@@ -84,5 +84,8 @@ class Parser {
     private void log(String msg) {
         Main.log(msg);
     }
+
+
+
     
 }
